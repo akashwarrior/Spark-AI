@@ -1,17 +1,26 @@
+'use client';
+
 import { selectedFileStore } from "@/lib/stores/selectedFile";
-import { Folder, File } from "lucide-react"
+import { stepsAtom } from "@/lib/stores/stepsAtom";
+import { StepType } from "@/lib/utils/constants";
+import { useStore } from "@nanostores/react";
+import { Folder, File } from "lucide-react";
 import { useEffect } from "react";
 
-export function FileTree({ files }: { files: string[] }) {
-    const sortedFiles = [...files].sort((a, b) => {
-        const aDepth = a.split("/").length
-        const bDepth = b.split("/").length
+export function FileTree() {
+    const files = useStore(stepsAtom);
+
+    const sortedFiles = files.entries().toArray().filter(file => file[1].type === StepType.File).map((file) => file[0]).sort((a, b) => {
+        const aDepth = a.split("/").length;
+        const bDepth = b.split("/").length;
         if (aDepth !== bDepth) return bDepth - aDepth;
         return a.localeCompare(b);
     });
 
     useEffect(() => {
-        selectedFileStore.set(files[files.length - 1]);
+        if (selectedFileStore.get() === "" && sortedFiles.length > 0) {
+            selectedFileStore.set(sortedFiles[0]);
+        }
     }, [files])
 
     const renderFileTree = (files: string[], path = "") => {

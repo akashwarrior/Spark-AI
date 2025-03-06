@@ -1,10 +1,16 @@
+'use client';
+
 import { Button } from "@/components/ui/button"
 import { Code, ImageIcon, Wand2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
-import Link from "next/link"
+import { promptAtom } from "@/lib/stores/promptAtom";
+import { useRouter } from "next/navigation";
 import Chat from "@/components/chat/Chat"
+import Link from "next/link"
+import { useEffect } from "react";
+import { scan } from "react-scan";
 
-export default async function Page() {
+export default function Page() {
   const EXAMPLE_PROMPTS = [
     { text: 'Build a todo app in React using Tailwind' },
     { text: 'Build a simple blog using Astro' },
@@ -12,6 +18,18 @@ export default async function Page() {
     { text: 'Make a space invaders game' },
     { text: 'How do I center a div?' },
   ];
+
+  const router = useRouter();
+
+  const handleSubmit = (e: React.MouseEvent, prompt: string) => {
+    e.preventDefault();
+    promptAtom.set(prompt);
+    router.push('/chat/1');
+  }
+
+  useEffect(() => {
+    scan({ enabled: true });
+  }, []);
 
   const FEATURES = [
     {
@@ -63,7 +81,8 @@ export default async function Page() {
                 <Button
                   variant="ghost"
                   key={index}
-                  className="text-primary/50 hover:text-primary active:bg-transparent active:text-primary/50 hover:bg-transparent"
+                  onClick={(e) => handleSubmit(e, examplePrompt.text)}
+                  className="text-primary/50 hover:text-primary active:bg-transparent active:text-primary/50 hover:bg-transparent px-0"
                 >
                   {examplePrompt.text}
                 </Button>

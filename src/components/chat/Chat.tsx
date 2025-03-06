@@ -4,11 +4,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, Sparkles } from "lucide-react";
 import { useStore } from "@nanostores/react";
-import { promptStore } from "@/lib/stores/promptStore";
+import { promptAtom } from "@/lib/stores/promptAtom";
 import { useRouter } from "next/navigation";
 
 export default function Chat() {
-    const prompt = useStore(promptStore);
+    const prompt = useStore(promptAtom);
     const router = useRouter();
 
     const handleSubmit = (e: (React.MouseEvent | React.KeyboardEvent)) => {
@@ -25,7 +25,7 @@ export default function Chat() {
                         handleSubmit(e);
                     }
                 }}
-                onChange={(e) => promptStore.set(e.target.value)}
+                onChange={(e) => promptAtom.set(e.target.value)}
                 placeholder="Describe your project..."
                 className="w-full py-3 px-3 text-lg resize-none focus-visible:ring-0 bg-transparent outline-none shadow-none border-none"
             />

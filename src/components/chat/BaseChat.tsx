@@ -1,87 +1,98 @@
 "use client"
 
-import { useRef, useEffect, useCallback } from "react"
+import { useRef, useEffect } from "react"
 import { Bot, FileCode, Send, Sparkles, StopCircle, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { promptStore } from "@/lib/stores/promptStore"
 import { useChat } from "@ai-sdk/react"
 import { AnimatePresence, motion } from "motion/react"
-import { messageStore } from "@/lib/stores/messageStore"
+import { parseXml } from "@/lib/utils/constants"
+import { useStore } from "@nanostores/react"
+import { messageAtom } from "@/lib/stores/messageAtom"
 
-export default function BaseChat({ steps }: { steps: { title: string, pending?: boolean }[] }) {
+export default function BaseChat({ className }: { className: string }) {
+  const messageStore = useStore(messageAtom);
 
-  const { messages, status, append, stop, handleInputChange, handleSubmit, input, setMessages } = useChat({
-    onError: (error) => console.log(error),
+  const { messages, status, stop, handleInputChange, handleSubmit, input } = useChat({
+    onError: (error) => { console.log(error) },
     onFinish: () => { console.log("Chat finished") },
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, []);
+  const scrollIntoView = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 900);
+  }
+
+  const submitInput = (e: React.FormEvent) => {
+    e.preventDefault();
+    scrollIntoView();
+    handleSubmit(e);
+  }
 
   useEffect(() => {
-    if (promptStore.get().trim().length > 0) {
-      append({ role: 'user', content: promptStore.get() });
-      promptStore.set('');
+    if (messagesEndRef.current && messagesEndRef.current.getBoundingClientRect().top < window.innerHeight) {
+      scrollIntoView();
     }
-  }, []);
+  }, [messageStore])
 
   useEffect(() => {
+    console.log(messages);
     if (messages.length === 0) {
-      setMessages(messageStore.get())
       return;
     }
-    scrollToBottom();
-    messageStore.set(messages);
+    parseXml(messages[messages.length - 1].content, messages[messages.length - 1].id, messages[messages.length - 1].role);
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col h-full ${className}`}>
       <div className="flex-1 overflow-auto p-4 space-y-4">
-        {messages.map((message, index) => (
+        {messageStore.map(({ role, steps, createdAt }, id) => (
           <motion.div
-            key={message.id}
+            key={id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className={cn(
               "flex gap-3 p-4 rounded-lg",
-              message.role === "assistant"
+              role === "assistant"
                 ? "bg-secondary/30 backdrop-blur-sm border border-border/50"
                 : "bg-primary/5 backdrop-blur-sm",
             )}
           >
             <div className="w-8 h-8 rounded-lg border border-border/50 flex items-center justify-center bg-background/50 backdrop-blur-sm shrink-0">
-              {message.role === "assistant" ? <Bot className={`w-4 h-4 ${status === 'streaming' && "animate-pulse"}`} /> : <User className="w-4 h-4" />}
+              {role === "assistant" ? <Bot className={`w-4 h-4 ${status === 'streaming' && "animate-pulse"}`} /> : <User className="w-4 h-4" />}
             </div>
             <div className="flex-1 space-y-2">
               <div>
                 <div className="leading-relaxed whitespace-pre-wrap [word-break:break-word]">
-                  {(index === messages.length - 1) && message.content.includes("<boltArtifact") ?
-                    <AnimatePresence>
-                      {steps.map((step, id) => (
-                        id > 0 &&
+                  {steps.map(({ content, pending, type }, id) => (
+                    <AnimatePresence
+                      key={id}>
+                      {type !== undefined ?
                         <motion.div
-                          key={(step.title + id)}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
                           className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 backdrop-blur-sm border border-border/50 mb-4"
                         >
                           <FileCode className="w-4 h-4" />
-                          <span className="text-sm">{step.title}</span>
-                          <span className="text-xs text-muted-foreground">{(step.pending ? "Generating..." : "Done")}</span>
+                          <span className="text-sm">{content}</span>
+                          <span className="text-xs text-muted-foreground">{pending ? "Generating..." : "Done"}</span>
                         </motion.div>
-                      ))}
+                        : <p>
+                          {content}
+                        </p>
+                      }
                     </AnimatePresence>
-                    : message.content
-                  }</div>
+                  ))}
+                </div>
               </div>
-              {status === "streaming" && message.role === "assistant" &&
+              {status === "streaming" && role === "assistant" && id === messages.length - 1 &&
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -94,7 +105,7 @@ export default function BaseChat({ steps }: { steps: { title: string, pending?: 
                 </motion.div>
               }
               <div className="flex items-center gap-2">
-                <time className="text-xs text-muted-foreground">{message.createdAt?.toLocaleTimeString()}</time>
+                <time className="text-xs text-muted-foreground">{createdAt?.toLocaleTimeString()}</time>
               </div>
             </div>
           </motion.div>
@@ -114,25 +125,10 @@ export default function BaseChat({ steps }: { steps: { title: string, pending?: 
             </div>
           </motion.div>
         )}
-        {/* <AnimatePresence>
-          {streamingFiles.map((fileName) => (
-            <motion.div
-              key={fileName}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 backdrop-blur-sm border border-border/50"
-            >
-              <FileCode className="w-4 h-4" />
-              <span className="text-sm">{fileName}</span>
-              <span className="text-xs text-muted-foreground">Generating...</span>
-            </motion.div>
-          ))}
-        </AnimatePresence> */}
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-background/50 backdrop-blur-sm">
+      <form onSubmit={submitInput} className="p-4 border-t border-border bg-background/50 backdrop-blur-sm">
         <div className="flex gap-2">
           <Textarea
             value={input}
@@ -141,8 +137,7 @@ export default function BaseChat({ steps }: { steps: { title: string, pending?: 
             className="min-h-[2.5rem] max-h-32 bg-secondary/50 backdrop-blur-sm border-secondary-foreground/10 transition-colors focus:bg-secondary/80 resize-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSubmit(e)
+                submitInput(e);
               }
             }}
           />
@@ -161,4 +156,4 @@ export default function BaseChat({ steps }: { steps: { title: string, pending?: 
       </form>
     </div>
   )
-}
+};

@@ -10,6 +10,7 @@ export async function POST(req: Request) {
             system: systemPrompt,
             messages: convertToCoreMessages(messages),
         });
+
         return result.toDataStreamResponse();
 
     } catch (error) {

@@ -1,80 +1,110 @@
+import { messageAtom, messageAtomType } from "../stores/messageAtom";
+import { stepsAtom } from "../stores/stepsAtom";
+
 export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 
 export enum StepType {
-  CreateFile,
-  CreateFolder,
-  EditFile,
-  DeleteFile,
-  RunScript
+  File,
+  Script
 }
 
-export function parseXml(response: string): {
-  title: string;
-  type?: StepType;
-  pending?: boolean;
-  code?: string;
-  path?: string;
-}[] {
-  if (!response || !response.includes('<boltArtifact')) {
-    return [];
+const ARTIFACT_TAG_OPEN = 'boltArtifact ';
+const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
+const ARTIFACT_ACTION_TAG_OPEN = '<boltAction';
+const ARTIFACT_ACTION_TAG_CLOSE = '</boltAction>';
+
+
+export function parseXml(response: string, id: string, role: "system" | "user" | "assistant" | "data"): void {
+  if (!response) return;
+
+  const artifactStartIndex = response.indexOf(ARTIFACT_TAG_OPEN);
+  let beforeArtifact = '';
+  let artifactCandidate = '';
+
+  if (artifactStartIndex !== -1) {
+    beforeArtifact = response.substring(0, artifactStartIndex);
+    artifactCandidate = response.substring(artifactStartIndex + ARTIFACT_TAG_OPEN.length);
+  } else {
+    beforeArtifact = response;
   }
-  const xmlMatch = response.match(/<boltArtifact[^>]*>([\s\S]*?)(?=<\/boltArtifact>|$)/);
-  if (!xmlMatch) {
-    return [];
+
+  const message: messageAtomType = {
+    id,
+    role,
+    createdAt: new Date(),
+    steps: [],
+  };
+
+  if (beforeArtifact) {
+    message.steps.push({ content: beforeArtifact });
   }
 
-  const xmlContent = xmlMatch[1];
-  const steps = [];
+  const actionRegex = new RegExp(
+    `${ARTIFACT_ACTION_TAG_OPEN}\\s+type="([^"]*)"(?:\\s+filePath="([^"]*)")?>([\\s\\S]*?)${ARTIFACT_ACTION_TAG_CLOSE}`,
+    'g'
+  );
 
-  const titleMatch = response.match(/title="([^"]*)"/);
-  const artifactTitle = titleMatch ? titleMatch[1] : 'Project Files';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
 
-  steps.push({ title: artifactTitle });
-
-  const actionRegex = /<boltAction\s+type="([^"]*)"(?:\s+filePath="([^"]*)")?>([\s\S]*?)<\/boltAction>/g;
-
-  let match;
-  while ((match = actionRegex.exec(xmlContent)) !== null) {
+  while ((match = actionRegex.exec(artifactCandidate)) !== null) {
+    lastIndex = actionRegex.lastIndex;
     let [, type, filePath, content] = match;
-    let i = 0;
-    if (content[i] === '\n') {
+
+    if (content[0] === '\n') {
       content = content.slice(1);
     }
 
+    let i = 0;
     for (; i < content.length; i++) {
-      if (content[i] !== ' ') {
-        break;
-      }
+      if (content[i] !== ' ') break;
     }
 
     content = content
       .split('\n')
       .map(line => line.slice(i))
-      .join('\n')
+      .join('\n');
 
-    if (type === 'file') {
-      steps.push({
-        title: `Create ${filePath || 'file'}`,
-        type: StepType.CreateFile,
-        pending: true,
-        code: content.trimEnd(),
-        path: filePath
-      });
-    } else if (type === 'shell') {
-      steps.push({
-        title: 'Run command',
-        type: StepType.RunScript,
-        pending: true,
-        code: content.trimEnd(),
-      });
+    const step = new Map(stepsAtom.get());
+
+    switch (type) {
+      case 'file':
+        step.set(filePath, {
+          id,
+          type: StepType.File,
+          content: content.trimEnd(),
+        });
+        message.steps.push({
+          type: StepType.File,
+          pending: true,
+          content: filePath,
+        });
+        break;
+      case 'shell':
+        step.set(content.trim(), {
+          id,
+          type: StepType.Script,
+          content: content.trim(),
+        });
+        message.steps.push({
+          type: StepType.Script,
+          pending: true,
+          content: content.trim(),
+        });
+        break;
     }
+    stepsAtom.set(step);
   }
 
-  return steps;
+  const messageIndex = messageAtom.get()[messageAtom.get().length - 1]?.id === id;
+  if (!messageIndex) {
+    messageAtom.set([...messageAtom.get(), message]);
+  } else {
+    messageAtom.set([...messageAtom.get().slice(0, -1), message]);
+  }
 }
-
 
 
 export const allowedHTMLElements = [

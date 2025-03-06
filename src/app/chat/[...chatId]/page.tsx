@@ -1,42 +1,19 @@
-'use client';
-
-import BaseChat from "@/components/chat/BaseChat";
 import { FileTree } from "@/components/chat/FileTree";
-import CodeEditor from "@/components/chat/CodeEditor";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Code, FileCode, Layout } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { parseXml } from "@/lib/utils/constants";
-import { useStore } from "@nanostores/react";
-import { messageStore } from "@/lib/stores/messageStore";
+import { ArrowLeft, FileCode } from "lucide-react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { ContentArea } from "@/components/Content";
+import { redirect } from "next/navigation";
+import CodeEditor from "@/components/chat/CodeEditor";
 import Link from "next/link";
-import { Preview } from "@/components/chat/Preview";
 
+export default async function Page({ params }: { params: Promise<{ chatId: string }> }) {
+  const { chatId } = (await params);
 
-export default function Page() {
-  const [activeTab, setActiveTab] = useState<"chat" | "preview">("chat");
-  const { chatId } = useParams<{ chatId: string }>();
-  const router = useRouter();
-  const [message, setMessage] = useState<{
-    title: string;
-    pending?: boolean;
-    code?: string;
-    path?: string;
-  }[]>([]);
-
-  if (!chatId) {
-    router.replace("/");
-    return null;
+  if (chatId.length !== 1 || Number.isNaN(Number(chatId[0]))) {
+    console.error("No chatId provided", chatId);
+    redirect('/');
   }
-
-  const messages = useStore(messageStore);
-
-  useEffect(() => {
-    const content = messages[messages.length - 1]?.content;
-    const msg = parseXml(content);
-    setMessage(msg);
-  }, [messages])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
@@ -51,53 +28,25 @@ export default function Page() {
           </Link>
         </div>
         <div className="flex-1 overflow-auto">
-          <FileTree files={message.reduce((acc: Array<string>, msg) => {
-            if (msg?.path) acc.push(msg.path);
-            return acc;
-          }, [])} />
+          <FileTree />
         </div>
       </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b border-border bg-background/50 backdrop-blur-sm p-4">
-          <h1 className="text-lg font-semibold">{message[0]?.title}</h1>
-          <p className="text-sm text-muted-foreground">Chat #{chatId}</p>
+        <header className="border-b border-border bg-background/50 backdrop-blur-sm p-4 flex items-center justify-center mx-4">
+          <div className="flex flex-col flex-1">
+            <h1 className="text-lg font-semibold">{"Title"}</h1>
+            <p className="text-sm text-muted-foreground">Chat #{chatId}</p>
+          </div>
+          <ThemeToggle />
         </header>
 
         {/* Content area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Chat and Preview area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Tabs */}
-            <div className="border-b border-border">
-              <nav className="flex" aria-label="Tabs">
-                <Button
-                  variant="ghost"
-                  onClick={() => setActiveTab("chat")}
-                  className={`${activeTab === "chat" ? "border-b-2 border-primary" : ""} px-4 py-2 text-sm font-medium`}
-                >
-                  <Code className="mr-2 h-4 w-4" />
-                  Chat
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setActiveTab("preview")}
-                  className={`${activeTab === "preview" ? "border-b-2 border-primary" : ""} px-4 py-2 text-sm font-medium`}
-                >
-                  <Layout className="mr-2 h-4 w-4" />
-                  Preview
-                </Button>
-              </nav>
-            </div>
-
-            {/* Tab content */}
-            <div className="flex-1 overflow-auto">
-              {activeTab === "chat" && <BaseChat steps={message} />}
-              {activeTab === "preview" && <Preview message={message} />}
-            </div>
-          </div>
+          <ContentArea />
 
           {/* Code editor */}
           <div className="w-1/2 border-l border-border flex flex-col">
@@ -108,7 +57,7 @@ export default function Page() {
               </h2>
             </div>
             <div className="flex-1 overflow-auto p-4">
-              <CodeEditor message={message} />
+              <CodeEditor />
             </div>
           </div>
         </div>

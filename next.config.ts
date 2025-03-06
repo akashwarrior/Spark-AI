@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
@@ -9,7 +10,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+      source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Embedder-Policy',

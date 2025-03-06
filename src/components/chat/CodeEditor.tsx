@@ -1,51 +1,46 @@
-import { createHighlighter } from 'shiki';
+'use client';
+
+import { type BundledTheme, createHighlighter, BundledLanguage } from 'shiki';
 import { shikiToMonaco } from '@shikijs/monaco';
-import dynamic from 'next/dynamic';
 import { useStore } from '@nanostores/react';
 import { selectedFileStore } from '@/lib/stores/selectedFile';
+import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
+import { stepsAtom } from '@/lib/stores/stepsAtom';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
 
-const CodeEditor = ({ message }: { message: any }) => {
+const themes: BundledTheme[] = ['material-theme-darker', 'material-theme-lighter'];
+const languages: BundledLanguage[] = ['js', 'ts', 'tsx', 'jsx', 'css', 'html', 'json', 'yaml', 'md', 'prisma'];
+
+const CodeEditor = () => {
+  const { theme } = useTheme();
   const selectedFile = useStore(selectedFileStore);
-  const code = message?.find((msg: any) => msg?.path === selectedFile)?.code ?? "";
-  const lang = selectedFile?.split('.').pop() ?? 'plaintext';
+  const codeFile = useStore(stepsAtom);
+  const lang = languages.includes(selectedFile?.split('.').pop() as BundledLanguage) ? selectedFile?.split('.').pop() : 'js';
+
   return (
     <MonacoEditor
-      onMount={async (_editor, monaco) => {
+      beforeMount={async (monaco) => {
         const highlighter = await createHighlighter({
-          themes: ['material-theme-darker'],
-          langs: ['html', 'css', 'javascript', 'typescript', 'jsx', 'tsx', 'json', 'dotenv', 'shell', 'bash', 'yaml', 'yml', 'markdown', 'graphql', 'sql', 'python', 'rust', 'go', 'java', 'js', 'ts']
+          themes,
+          langs: languages,
         });
-        monaco.languages.register({ id: 'html' });
-        monaco.languages.register({ id: 'css' });
-        monaco.languages.register({ id: 'javascript' });
-        monaco.languages.register({ id: 'typescript' });
-        monaco.languages.register({ id: 'jsx' });
-        monaco.languages.register({ id: 'tsx' });
-        monaco.languages.register({ id: 'json' });
-        monaco.languages.register({ id: 'dotenv' });
-        monaco.languages.register({ id: 'shell' });
-        monaco.languages.register({ id: 'bash' });
-        monaco.languages.register({ id: 'yaml' });
-        monaco.languages.register({ id: 'yml' });
-        monaco.languages.register({ id: 'markdown' });
-        monaco.languages.register({ id: 'java' });
-        monaco.languages.register({ id: 'graphql' });
-        monaco.languages.register({ id: 'sql' });
-        monaco.languages.register({ id: 'python' });
-        monaco.languages.register({ id: 'rust' });
-        monaco.languages.register({ id: 'go' });
-        monaco.languages.register({ id: 'js' });
-        monaco.languages.register({ id: 'ts' });
-
+        languages.forEach((lang) => monaco.languages.register({ id: lang }));
         shikiToMonaco(highlighter, monaco);
       }}
       height="100%"
-      value={code}
+      value={codeFile.get(selectedFile)?.content}
       language={lang}
+      theme={theme === 'dark' ? themes[0] : themes[1]}
+      onChange={(value) => {
+        const map = new Map(stepsAtom.get());
+        map.set(selectedFile, { ...map.get(selectedFile)!, content: value ?? "" });
+        stepsAtom.set(map);
+      }}
       options={{
         minimap: { enabled: false },
+        smoothScrolling: true,
         scrollBeyondLastLine: false,
         fontSize: 14,
         autoIndent: 'full',
