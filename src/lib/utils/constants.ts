@@ -24,8 +24,13 @@ export function parseXml(response: string, id: string, role: "system" | "user" |
   let artifactCandidate = '';
 
   if (artifactStartIndex !== -1) {
-    beforeArtifact = response.substring(0, artifactStartIndex);
-    artifactCandidate = response.substring(artifactStartIndex + ARTIFACT_TAG_OPEN.length);
+    if (response[artifactStartIndex - 1] === '<') {
+      beforeArtifact = response.substring(0, artifactStartIndex - 1);
+      artifactCandidate = response.substring(artifactStartIndex - 1 + ARTIFACT_TAG_OPEN.length);
+    } else {
+      beforeArtifact = response.substring(0, artifactStartIndex);
+      artifactCandidate = response.substring(artifactStartIndex + ARTIFACT_TAG_OPEN.length);
+    }
   } else {
     beforeArtifact = response;
   }

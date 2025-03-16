@@ -5,9 +5,8 @@ function getGeminiModel() {
         apiKey: process.env.GOOGLE_API_KEY,
     });
 
-    return gemini('gemini-2.0-flash-001', {
+    return gemini('gemini-2.0-pro-exp-02-05', {
         useSearchGrounding: true,
-        structuredOutputs: true,
     });
 }
 

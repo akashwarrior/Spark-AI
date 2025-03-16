@@ -7,7 +7,7 @@ import { stepsAtom } from "@/lib/stores/stepsAtom";
 import { StepType } from "@/lib/utils/constants";
 import { useStore } from "@nanostores/react";
 import { FileSystemTree } from "@webcontainer/api";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 export const Preview = ({ className }: { className: string }) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -80,10 +80,8 @@ export const Preview = ({ className }: { className: string }) => {
         if (!webContainer || !selectedFile) {
             return;
         }
-
-        console.log("Writing file", selectedFile);
         webContainer.fs.writeFile(selectedFile, stepStore.get(selectedFile)?.content ?? "");
-    }, [webContainer, selectedFile, stepStore]);
+    }, [stepStore]);
 
 
     return (
