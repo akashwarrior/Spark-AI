@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
     try {
         const result = streamText({
-            model: model,
+            model,
             system: systemPrompt,
             messages: convertToCoreMessages(messages),
         });

@@ -15,6 +15,7 @@ export default function BaseChat({ className }: { className: string }) {
   const messageStore = useStore(messageAtom);
 
   const { messages, status, stop, handleInputChange, handleSubmit, input } = useChat({
+    api: '/api/chat',
     onError: (error) => { console.log(error) },
     onFinish: () => { console.log("Chat finished") },
   });

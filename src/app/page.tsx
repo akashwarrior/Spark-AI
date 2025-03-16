@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Code, ImageIcon, Wand2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { promptAtom } from "@/lib/stores/promptAtom";
-import { useRouter } from "next/navigation";
-import Chat from "@/components/chat/Chat"
-import Link from "next/link"
 import { useEffect } from "react";
 import { scan } from "react-scan";
+import Chat from "@/components/chat/Chat"
+import Link from "next/link"
 
 export default function Page() {
   const EXAMPLE_PROMPTS = [
@@ -19,16 +18,10 @@ export default function Page() {
     { text: 'How do I center a div?' },
   ];
 
-  const router = useRouter();
-
-  const handleSubmit = (e: React.MouseEvent, prompt: string) => {
-    e.preventDefault();
-    promptAtom.set(prompt);
-    router.push('/chat/1');
-  }
-
   useEffect(() => {
-    scan({ enabled: true });
+    // scan({
+    //   enabled: true,
+    // });
   }, []);
 
   const FEATURES = [
@@ -81,7 +74,7 @@ export default function Page() {
                 <Button
                   variant="ghost"
                   key={index}
-                  onClick={(e) => handleSubmit(e, examplePrompt.text)}
+                  onClick={(e) => promptAtom.set(examplePrompt.text)}
                   className="text-primary/50 hover:text-primary active:bg-transparent active:text-primary/50 hover:bg-transparent px-0"
                 >
                   {examplePrompt.text}
