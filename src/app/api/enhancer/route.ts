@@ -8,6 +8,7 @@ export async function POST(req: Request) {
         const result = streamText({
             model,
             prompt: `I want you to improve the user prompt that is wrapped in \`<original_prompt>\` tags.
+                Understand the user's intent and improve the prompt to be more specific and clear.
       
                 IMPORTANT: Only respond with the improved prompt and nothing else!
       
