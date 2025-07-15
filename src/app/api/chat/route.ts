@@ -7,8 +7,18 @@ export async function POST(req: Request) {
     try {
         const result = streamText({
             model,
-            system: systemPrompt,
-            messages: convertToCoreMessages(messages),
+            // system: systemPrompt,
+            messages: convertToCoreMessages([
+                {
+                    role: 'user',
+                    content: `
+                        ${systemPrompt}
+                        <user_input>
+                        ${messages[messages.length - 1].content}
+                        </user_input>
+                    `
+                }
+            ]),
         });
 
         return result.toDataStreamResponse();

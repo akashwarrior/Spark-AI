@@ -1,5 +1,4 @@
 import { messageAtom, messageAtomType } from "../stores/messageAtom";
-import { stepsAtom } from "../stores/stepsAtom";
 
 export const WORK_DIR_NAME = 'project';
 export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
@@ -72,15 +71,8 @@ export function parseXml(response: string, id: string, role: "system" | "user" |
       .map(line => line.slice(i))
       .join('\n');
 
-    const step = new Map(stepsAtom.get());
-
     switch (type) {
       case 'file':
-        step.set(filePath, {
-          id,
-          type: StepType.File,
-          content: content.trimEnd(),
-        });
         message.steps.push({
           type: StepType.File,
           pending: true,
@@ -88,11 +80,6 @@ export function parseXml(response: string, id: string, role: "system" | "user" |
         });
         break;
       case 'shell':
-        step.set(content.trim(), {
-          id,
-          type: StepType.Script,
-          content: content.trim(),
-        });
         message.steps.push({
           type: StepType.Script,
           pending: true,
@@ -100,7 +87,6 @@ export function parseXml(response: string, id: string, role: "system" | "user" |
         });
         break;
     }
-    stepsAtom.set(step);
   }
 
   const messageIndex = messageAtom.get()[messageAtom.get().length - 1]?.id === id;

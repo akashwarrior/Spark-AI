@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [{
-      source: '/:path*',
+      source: '/chat/:path*',
       headers: [
         {
           key: 'Cross-Origin-Embedder-Policy',

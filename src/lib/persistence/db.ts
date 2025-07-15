@@ -3,6 +3,10 @@ import type { ChatHistoryItem } from './useChatHistory';
 
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   return new Promise((resolve) => {
+    if (typeof indexedDB === 'undefined') {
+      resolve(undefined);
+      return;
+    }
     const request = indexedDB.open('boltHistory', 1);
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = (event.target as IDBOpenDBRequest).result;

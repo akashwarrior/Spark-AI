@@ -10,7 +10,7 @@ export async function POST(req: Request) {
             prompt: `I want you to improve the user prompt that is wrapped in \`<original_prompt>\` tags.
                 Understand the user's intent and improve the prompt to be more specific and clear.
       
-                IMPORTANT: Only respond with the improved prompt and nothing else!
+                IMPORTANT: Only respond with the improved prompt in plain text without any other text or formatting and nothing else!
       
                 <original_prompt>
                   ${messages[messages.length - 1].content}

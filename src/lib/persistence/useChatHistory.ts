@@ -1,8 +1,11 @@
+'use client';
+
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Message } from 'ai';
-import { toast } from 'react-toastify';
-import { getMessages, openDatabase, setMessages } from './db';
-import { useParams, useRouter } from 'next/navigation';
+import { getMessages, openDatabase, setMessages } from '@/lib/persistence/db';
+import { parseXml } from '@/lib/utils/constants';
 
 export interface ChatHistoryItem {
   id: string;
@@ -14,28 +17,19 @@ export interface ChatHistoryItem {
 
 export const db = await openDatabase();
 
-export function useChatHistory() {
+export function useChatHistory(chatId: string) {
   const router = useRouter();
-  const { chatId } = useParams<{ chatId?: string }>();
-
-  if (!chatId) {
-    router.push('/');
-    return;
-  }
-
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  const [ready, setReady] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!db) {
-      return;
-    }
+    if (!db) return;
 
     getMessages(db, chatId)
       .then((storedMessages) => {
         if (storedMessages && storedMessages.messages.length > 0) {
-          setInitialMessages(storedMessages.messages);
-          setReady(true);
+          const messages = storedMessages.messages;
+          setInitialMessages(messages);
+          messages.forEach((msg) => parseXml(msg.content, msg.id, msg.role));
         } else {
           router.push(`/`);
         }
@@ -47,12 +41,9 @@ export function useChatHistory() {
   }, [db]);
 
   return {
-    ready,
     initialMessages,
     storeMessageHistory: async (messages: Message[]) => {
-      if (!db || messages.length === 0) {
-        return;
-      }
+      if (!db) return;
       await setMessages(db, chatId, messages);
     },
   };
